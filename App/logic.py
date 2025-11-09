@@ -23,19 +23,14 @@ def load_data(catalog, filename):
     n_archivo = "Data/" + filename
     archivo = csv.DictReader(open(n_archivo, encoding='utf-8'))
 
-    # ------------------------------
-    # Lectura y conversión de datos
-    # ------------------------------
     for vuelo in archivo:
         vuelo["flight_date"] = datetime.strptime(vuelo["flight_date"], "%Y-%m-%d")
 
-        # Si los campos de hora están vacíos, se reemplazan por "00:00"
         hora_salida = vuelo["departure_time"] if vuelo["departure_time"] != "" else "00:00"
         hora_llegada = vuelo["arrival_time"] if vuelo["arrival_time"] != "" else "00:00"
         vuelo["departure_time"] = datetime.strptime(hora_salida, "%H:%M").time()
         vuelo["arrival_time"] = datetime.strptime(hora_llegada, "%H:%M").time()
 
-        # Conversión a float
         vuelo["air_time"] = float(vuelo["air_time"]) if vuelo["air_time"] != "" else 0.0
         vuelo["distance"] = float(vuelo["distance"]) if vuelo["distance"] != "" else 0.0
 
@@ -43,9 +38,6 @@ def load_data(catalog, filename):
 
     tamanio = catalog["flights"]["size"]
 
-    # ------------------------------
-    # Ordenar por fecha y hora
-    # ------------------------------
     vuelos_ordenados = al.new_list()
     for i in range(0, tamanio):
         elem = al.get_element(catalog["flights"], i)
@@ -65,9 +57,6 @@ def load_data(catalog, filename):
 
     vuelos_ordenados = al.merge_sort(vuelos_ordenados, sort_crit)
 
-    # ------------------------------
-    # Primeros y últimos 5 vuelos
-    # ------------------------------
     primeros = []
     ultimos = []
     fmt_fecha = "%Y-%m-%d"
@@ -105,9 +94,6 @@ def load_data(catalog, filename):
         }
         ultimos.append(info)
 
-    # ------------------------------
-    # Tiempo total y retorno
-    # ------------------------------
     final = get_time()
     tiempo = delta_time(inicio, final)
 
