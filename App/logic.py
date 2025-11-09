@@ -4,6 +4,8 @@ from DataStructures.List import single_linked_list as sll
 from DataStructures.Map import map_linear_probing as mlp
 from DataStructures.Map import map_separate_chaining as msc
 from DataStructures.priority_queue import priority_queue as pq
+from DataStructures.Tree import binary_search_tree as bst
+from DataStructures.Tree import red_black_tree as rbt
 from datetime import datetime
 import csv
 
@@ -96,25 +98,202 @@ def load_data(catalog, filename):
 
     final = get_time()
     tiempo = delta_time(inicio, final)
-
     retorno = catalog, tiempo, tamanio, primeros, ultimos
     return retorno
 
-def req_1(catalog):
-    """
-    Retorna el resultado del requerimiento 1
-    """
-    # TODO: Modificar el requerimiento 1
-    pass
+def req_1(catalog, code, min_delay, max_delay):
+        
+    inicio = get_time()
 
+    vuelos = catalog["flights"]
+    filtrados = al.new_list()
 
-def req_2(catalog):
-    """
-    Retorna el resultado del requerimiento 2
-    """
-    # TODO: Modificar el requerimiento 2
-    pass
+    for i in range(al.size(vuelos)):
+        v = al.get_element(vuelos, i)
 
+        if v["carrier"] == code:
+            sched = v["sched_dep_time"]
+            real = v["dep_time"]
+
+            if sched == "" or real == "":
+                continue
+
+            sched_h = datetime.strptime(sched, "%H:%M")
+            real_h = datetime.strptime(real, "%H:%M")
+
+            diff = (real_h - sched_h).total_seconds() / 60
+
+            # Ajuste si cruza la medianoche
+            if diff < -720:
+                diff += 1440
+            elif diff > 720:
+                diff -= 1440
+
+            if min_delay <= diff <= max_delay:
+                v["retraso"] = round(diff, 2)
+                al.add_last(filtrados, v)
+
+    arbol = bst.new_map()
+
+    for i in range(al.size(filtrados)):
+        vuelo = al.get_element(filtrados, i)
+        # clave: tupla (retraso, fecha, hora)
+        key = (vuelo["retraso"], vuelo["date"], vuelo["dep_time"])
+        bst.put(arbol, key, vuelo)
+
+    def inorder_rec(nodo, lista):
+        if nodo is not None:
+            inorder_rec(nodo["left"], lista)
+            al.add_last(lista, nodo["value"])
+            inorder_rec(nodo["right"], lista)
+
+    def inorder(tree):
+        lista = al.new_list()
+        inorder_rec(tree["root"], lista)
+        return lista
+
+    filtrados = inorder(arbol)
+
+    total = al.size(filtrados)
+    primeros = al.new_list()
+    ultimos = al.new_list()
+    limite = min(5, total)
+
+    for i in range(limite):
+        elem = al.get_element(filtrados, i)
+        info = {
+            "id_vuelo": elem["id"],
+            "codigo_vuelo": elem["flight"],
+            "fecha": elem["date"],
+            "nombre_aerolinea": elem["name"],
+            "codigo_aerolinea": elem["carrier"],
+            "aeropuerto_origen": elem["origin"],
+            "aeropuerto_destino": elem["dest"],
+            "retraso_min": round(elem["retraso"], 2)
+        }
+        al.add_last(primeros, info)
+
+    for i in range(total - limite, total):
+        elem = al.get_element(filtrados, i)
+        info = {
+            "id_vuelo": elem["id"],
+            "codigo_vuelo": elem["flight"],
+            "fecha": elem["date"],
+            "nombre_aerolinea": elem["name"],
+            "codigo_aerolinea": elem["carrier"],
+            "aeropuerto_origen": elem["origin"],
+            "aeropuerto_destino": elem["dest"],
+            "retraso_min": round(elem["retraso"], 2)
+        }
+        al.add_last(ultimos, info)
+
+    final = get_time()
+    tiempo = delta_time(inicio, final)
+
+    resultado = al.new_list()
+    al.add_last(resultado, {"tiempo_ms": round(tiempo, 2)})
+    al.add_last(resultado, {"total_vuelos": total})
+    al.add_last(resultado, {"primeros": primeros})
+    al.add_last(resultado, {"ultimos": ultimos})
+
+    return resultado
+
+def req_2(catalog, dest, min_anticipation, max_anticipation):
+
+    inicio = get_time()
+
+    flights = catalog["flights"]
+    filtrados = al.new_list()
+
+    for i in range(al.size(flights)):
+        vuelo = al.get_element(flights, i)
+
+        if vuelo["dest"] == dest:
+            sched_arr = vuelo["sched_arr_time"]
+            real_arr = vuelo["arr_time"]
+
+            if sched_arr == "" or real_arr == "":
+                continue
+
+            sched_time = datetime.strptime(sched_arr, "%H:%M")
+            real_time = datetime.strptime(real_arr, "%H:%M")
+
+            diff = (real_time - sched_time).total_seconds() / 60
+
+            if diff < -720:
+                diff += 1440
+            elif diff > 720:
+                diff -= 1440
+
+            if diff < 0:
+                anticipo = abs(diff)
+                if min_anticipation <= anticipo <= max_anticipation:
+                    vuelo["anticipation"] = round(anticipo, 2)
+                    al.add_last(filtrados, vuelo)
+
+    arbol = bst.new_map()
+
+    for i in range(al.size(filtrados)):
+        vuelo = al.get_element(filtrados, i)
+        key = (vuelo["anticipation"], vuelo["date"], vuelo["arr_time"])
+        bst.put(arbol, key, vuelo)
+
+    def inorder_rec(nodo, lista):
+        if nodo is not None:
+            inorder_rec(nodo["left"], lista)
+            al.add_last(lista, nodo["value"])
+            inorder_rec(nodo["right"], lista)
+
+    def inorder(arbol):
+        lista = al.new_list()
+        inorder_rec(arbol["root"], lista)
+        return lista
+
+    filtrados = inorder(arbol)
+
+    total = al.size(filtrados)
+    primeros = al.new_list()
+    ultimos = al.new_list()
+    limite = min(5, total)
+
+    for i in range(limite):
+        f = al.get_element(filtrados, i)
+        info = {
+            "id": f["id"],
+            "flight": f["flight"],
+            "date": f["date"],
+            "airline_name": f["name"],
+            "airline_code": f["carrier"],
+            "origin": f["origin"],
+            "dest": f["dest"],
+            "anticipation_min": f["anticipation"]
+        }
+        al.add_last(primeros, info)
+
+    for i in range(total - limite, total):
+        f = al.get_element(filtrados, i)
+        info = {
+            "id": f["id"],
+            "flight": f["flight"],
+            "date": f["date"],
+            "airline_name": f["name"],
+            "airline_code": f["carrier"],
+            "origin": f["origin"],
+            "dest": f["dest"],
+            "anticipation_min": f["anticipation"]
+        }
+        al.add_last(ultimos, info)
+
+    final = get_time()
+    tiempo = delta_time(inicio, final)
+    retorno = al.new_list()
+
+    al.add_last(retorno, {"tiempo": round(tiempo, 2)})
+    al.add_last(retorno, {"total_vuelos": total})
+    al.add_last(retorno, {"primeros": primeros})
+    al.add_last(retorno, {"ultimos": ultimos})
+
+    return retorno
 
 def req_3(catalog):
     """
