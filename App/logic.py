@@ -8,6 +8,7 @@ from DataStructures.Tree import binary_search_tree as bst
 from DataStructures.Tree import red_black_tree as rbt
 from datetime import datetime
 import csv
+from math import sqrt
 
 
 def new_logic():
@@ -318,12 +319,144 @@ def req_5(catalog):
     # TODO: Modificar el requerimiento 5
     pass
 
-def req_6(catalog):
-    """
-    Retorna el resultado del requerimiento 6
-    """
-    # TODO: Modificar el requerimiento 6
-    pass
+def req_6(catalog,f_inicial, f_final, d_min, d_max, m):
+       
+    inicio = get_time()
+    flights = catalog["flights"]
+
+    por_aerolinea = mlp.new_map(al.size(flights), 0.7)
+
+    fecha_ini = datetime.strptime(f_inicial, "%Y-%m-%d")
+    fecha_fin = datetime.strptime(f_final, "%Y-%m-%d")
+
+    for i in range(al.size(flights)):
+        v = al.get_element(flights, i)
+
+        if v["date"] != "" and v["distance"] != "":
+            f_v = datetime.strptime(v["date"], "%Y-%m-%d")
+            dist = float(v["distance"])
+
+            if (fecha_ini <= f_v <= fecha_fin) and (d_min <= dist <= d_max):
+                sched_dep = v["sched_dep_time"]
+                real_dep = v["dep_time"]
+
+                if sched_dep != "" and real_dep != "":
+                    t_sched = datetime.strptime(sched_dep, "%H:%M")
+                    t_real = datetime.strptime(real_dep, "%H:%M")
+                    diff = (t_real - t_sched).total_seconds() / 60.0
+
+                    # Ajuste por cruce de medianoche
+                    if diff < -720:
+                        diff += 1440
+                    elif diff > 720:
+                        diff -= 1440
+
+                    code = v["carrier"]
+                    reg = mlp.get(por_aerolinea, code)
+                    if reg is None:
+                        reg = {
+                            "code": code,
+                            "name": v["name"],
+                            "delays": al.new_list(),
+                            "flights": al.new_list()
+                        }
+
+                    al.add_last(reg["delays"], diff)
+
+                    info_vuelo = {
+                        "id": v["id"],
+                        "flight": v["flight"],
+                        "date": v["date"],
+                        "dep_time": v["dep_time"],
+                        "origin": v["origin"],
+                        "dest": v["dest"],
+                        "delay": diff
+                    }
+
+                    al.add_last(reg["flights"], info_vuelo)
+                    mlp.put(por_aerolinea, code, reg)
+
+    def promedio(lista):
+        n = al.size(lista)
+        if n == 0:
+            return 0.0
+        suma = 0.0
+        for i in range(n):
+            suma += float(al.get_element(lista, i))
+        return suma / n
+
+    def desviacion(lista, mu):
+        n = al.size(lista)
+        if n <= 1:
+            return 0.0
+        suma2 = 0.0
+        for i in range(n):
+            x = float(al.get_element(lista, i))
+            d = x - mu
+            suma2 += d * d
+        return sqrt(suma2 / n)
+
+    def vuelo_mas_cercano(prom, vuelos):
+        mejor = None
+        mejor_abs = None
+        for i in range(al.size(vuelos)):
+            fv = al.get_element(vuelos, i)
+            d = abs(fv["delay"] - prom)
+            if (mejor is None) or (d < mejor_abs):
+                mejor = fv
+                mejor_abs = d
+        return mejor
+    
+    heap = pq.new_heap(is_min_pq=True)
+    keys = mlp.key_set(por_aerolinea)
+
+    for i in range(al.size(keys)):
+        k = al.get_element(keys, i)
+        reg = mlp.get(por_aerolinea, k)
+        n_vuelos = al.size(reg["delays"])
+
+        if n_vuelos > 0:
+            mu = promedio(reg["delays"])
+            sd = desviacion(reg["delays"], mu)
+            cercano = vuelo_mas_cercano(mu, reg["flights"])
+
+            resumen = {
+                "codigo_aerolinea": reg["code"],
+                "vuelos_analizados": n_vuelos,
+                "promedio_min": round(mu, 2),
+                "estabilidad_min": round(sd, 2),
+                "vuelo_cercano": {
+                    "id": cercano["id"],
+                    "codigo_vuelo": cercano["flight"],
+                    "fecha_hora_salida": f'{cercano["date"]} {cercano["dep_time"]}',
+                    "origen": cercano["origin"],
+                    "destino": cercano["dest"]
+                }
+            }
+
+            pq.insert(heap, (sd, mu), resumen)
+
+    aerolineas = al.new_list()
+    total_heap = pq.size(heap)
+    extraer = m
+    if total_heap < m:
+        extraer = total_heap
+
+    j = 0
+    while j < extraer:
+        val = pq.remove(heap)
+        al.add_last(aerolineas, val)
+        j += 1
+
+    final = get_time()
+    tiempo = delta_time(inicio, final)
+
+    retorno = al.new_list()
+    al.add_last(retorno, {"tiempo": round(tiempo, 2)})
+    al.add_last(retorno, {"total_aerolineas": extraer})
+    al.add_last(retorno, {"aerolineas": aerolineas})
+
+    return retorno
 
 
 # Funciones para medir tiempos de ejecucion
