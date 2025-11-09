@@ -1,12 +1,12 @@
 import sys
-
+import logic as l
 
 def new_logic():
     """
         Se crea una instancia del controlador
     """
-    #TODO: Llamar la función de la lógica donde se crean las estructuras de datos
-    pass
+    catalog = l.new_logic()
+    return catalog
 
 def print_menu():
     print("Bienvenido")
@@ -23,16 +23,16 @@ def load_data(control):
     """
     Carga los datos
     """
-    #TODO: Realizar la carga de datos
-    pass
+    filename = input("Ingrese el nombre del archivo: ")
+    catalog, tiempo, total, primeros, ultimos = l.load_data(control, filename)
+    return catalog, tiempo, total, primeros, ultimos
+
 
 
 def print_data(control, id):
-    """
-        Función que imprime un dato dado su ID
-    """
-    #TODO: Realizar la función para imprimir un elemento
-    pass
+
+    id = input("Ingrese el indice del dato a consultar: ")
+    print(l.get_data(control, id))
 
 def print_req_1(control):
     """
