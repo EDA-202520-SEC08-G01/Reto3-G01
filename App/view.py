@@ -1,5 +1,5 @@
 import sys
-import logic as l
+import App.logic as l
 
 def new_logic():
     """
