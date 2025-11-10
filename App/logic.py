@@ -27,13 +27,20 @@ def load_data(catalog, filename):
     archivo = csv.DictReader(open(n_archivo, encoding='utf-8'))
 
     for vuelo in archivo:
-        vuelo["flight_date"] = datetime.strptime(vuelo["flight_date"], "%Y-%m-%d")
+        # Procesar fecha
+        vuelo["date"] = datetime.strptime(vuelo["date"], "%Y-%m-%d")
 
-        hora_salida = vuelo["departure_time"] if vuelo["departure_time"] != "" else "00:00"
-        hora_llegada = vuelo["arrival_time"] if vuelo["arrival_time"] != "" else "00:00"
-        vuelo["departure_time"] = datetime.strptime(hora_salida, "%H:%M").time()
-        vuelo["arrival_time"] = datetime.strptime(hora_llegada, "%H:%M").time()
+        # Procesar horas de salida y llegada REALES (dep_time y arr_time)
+        hora_salida = vuelo["dep_time"] if vuelo["dep_time"] != "" else "00:00"
+        hora_llegada = vuelo["arr_time"] if vuelo["arr_time"] != "" else "00:00"
+        vuelo["dep_time"] = datetime.strptime(hora_salida, "%H:%M").time()
+        vuelo["arr_time"] = datetime.strptime(hora_llegada, "%H:%M").time()
+        
+        # Procesar horas programadas (para ordenar)
+        hora_salida_prog = vuelo["sched_dep_time"] if vuelo["sched_dep_time"] != "" else "00:00"
+        vuelo["sched_dep_time"] = datetime.strptime(hora_salida_prog, "%H:%M").time()
 
+        # Procesar campos numéricos
         vuelo["air_time"] = float(vuelo["air_time"]) if vuelo["air_time"] != "" else 0.0
         vuelo["distance"] = float(vuelo["distance"]) if vuelo["distance"] != "" else 0.0
 
@@ -41,17 +48,18 @@ def load_data(catalog, filename):
 
     tamanio = catalog["flights"]["size"]
 
+    # Copiar lista para ordenar
     vuelos_ordenados = al.new_list()
     for i in range(0, tamanio):
         elem = al.get_element(catalog["flights"], i)
         al.add_last(vuelos_ordenados, elem)
 
     def sort_crit(v1, v2):
-        """Criterio de ordenamiento: fecha + hora de salida"""
-        fecha1 = v1["flight_date"]
-        fecha2 = v2["flight_date"]
-        hora1 = v1["departure_time"]
-        hora2 = v2["departure_time"]
+        """Criterio de ordenamiento: fecha + hora programada de salida"""
+        fecha1 = v1["date"]
+        fecha2 = v2["date"]
+        hora1 = v1["sched_dep_time"]
+        hora2 = v2["sched_dep_time"]
         if fecha1 < fecha2:
             return True
         elif fecha1 == fecha2 and hora1 < hora2:
@@ -60,38 +68,40 @@ def load_data(catalog, filename):
 
     vuelos_ordenados = al.merge_sort(vuelos_ordenados, sort_crit)
 
+    # Extraer primeros 5 vuelos
     primeros = []
     ultimos = []
     fmt_fecha = "%Y-%m-%d"
     fmt_hora = "%H:%M"
 
-    for i in range(0, 5):
+    for i in range(0, min(5, tamanio)):
         vuelo = al.get_element(vuelos_ordenados, i)
         info = {
-            "fecha": vuelo["flight_date"].strftime(fmt_fecha),
-            "hora_salida": vuelo["departure_time"].strftime(fmt_hora),
-            "hora_llegada": vuelo["arrival_time"].strftime(fmt_hora),
-            "codigo_aerolinea": vuelo["airline_iata"],
-            "nombre_aerolinea": vuelo["airline_name"],
-            "aeronave": vuelo["tail_number"],
-            "origen": vuelo["origin_airport"],
-            "destino": vuelo["destination_airport"],
+            "fecha": vuelo["date"].strftime(fmt_fecha),
+            "hora_salida": vuelo["dep_time"].strftime(fmt_hora),
+            "hora_llegada": vuelo["arr_time"].strftime(fmt_hora),
+            "codigo_aerolinea": vuelo["carrier"],
+            "nombre_aerolinea": vuelo["name"],
+            "aeronave": vuelo["tailnum"],
+            "origen": vuelo["origin"],
+            "destino": vuelo["dest"],
             "duracion_min": round(vuelo["air_time"], 2),
             "distancia_millas": round(vuelo["distance"], 2)
         }
         primeros.append(info)
 
-    for i in range(tamanio - 5, tamanio):
+    # Extraer últimos 5 vuelos
+    for i in range(max(0, tamanio - 5), tamanio):
         vuelo = al.get_element(vuelos_ordenados, i)
         info = {
-            "fecha": vuelo["flight_date"].strftime(fmt_fecha),
-            "hora_salida": vuelo["departure_time"].strftime(fmt_hora),
-            "hora_llegada": vuelo["arrival_time"].strftime(fmt_hora),
-            "codigo_aerolinea": vuelo["airline_iata"],
-            "nombre_aerolinea": vuelo["airline_name"],
-            "aeronave": vuelo["tail_number"],
-            "origen": vuelo["origin_airport"],
-            "destino": vuelo["destination_airport"],
+            "fecha": vuelo["date"].strftime(fmt_fecha),
+            "hora_salida": vuelo["dep_time"].strftime(fmt_hora),
+            "hora_llegada": vuelo["arr_time"].strftime(fmt_hora),
+            "codigo_aerolinea": vuelo["carrier"],
+            "nombre_aerolinea": vuelo["name"],
+            "aeronave": vuelo["tailnum"],
+            "origen": vuelo["origin"],
+            "destino": vuelo["dest"],
             "duracion_min": round(vuelo["air_time"], 2),
             "distancia_millas": round(vuelo["distance"], 2)
         }

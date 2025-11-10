@@ -1,5 +1,6 @@
 import sys
 import App.logic as l
+from tabulate import tabulate
 
 def new_logic():
     """
@@ -25,6 +26,57 @@ def load_data(control):
     """
     filename = input("Ingrese el nombre del archivo: ")
     catalog, tiempo, total, primeros, ultimos = l.load_data(control, filename)
+    
+    print("\n" + "="*100)
+    print(" "*35 + "REPORTE DE CARGA DE DATOS")
+    print("="*100)
+    print(f"\nTiempo de carga: {tiempo:.2f} ms")
+    print(f"Total de vuelos cargados: {total:,}")
+    
+    # Preparar datos de los primeros 5 vuelos para tabulate
+    print("\n" + "-"*100)
+    print(" "*30 + "PRIMEROS 5 VUELOS (Orden Cronológico)")
+    print("-"*100)
+    
+    tabla_primeros = []
+    for vuelo in primeros:
+        tabla_primeros.append([
+            vuelo['fecha'],
+            vuelo['hora_salida'],
+            vuelo['hora_llegada'],
+            f"{vuelo['codigo_aerolinea']}\n{vuelo['nombre_aerolinea']}",
+            vuelo['aeronave'],
+            f"{vuelo['origen']}\n→ {vuelo['destino']}",
+            f"{vuelo['duracion_min']} min",
+            f"{vuelo['distancia_millas']} mi"
+        ])
+    
+    headers_primeros = ["Fecha", "Salida", "Llegada", "Aerolínea", "Aeronave", "Ruta", "Duración", "Distancia"]
+    print(tabulate(tabla_primeros, headers=headers_primeros, tablefmt="fancy_grid", stralign="center"))
+    
+    # Preparar datos de los últimos 5 vuelos para tabulate
+    print("\n" + "-"*100)
+    print(" "*30 + "ÚLTIMOS 5 VUELOS (Orden Cronológico)")
+    print("-"*100)
+    
+    tabla_ultimos = []
+    for vuelo in ultimos:
+        tabla_ultimos.append([
+            vuelo['fecha'],
+            vuelo['hora_salida'],
+            vuelo['hora_llegada'],
+            f"{vuelo['codigo_aerolinea']}\n{vuelo['nombre_aerolinea']}",
+            vuelo['aeronave'],
+            f"{vuelo['origen']}\n→ {vuelo['destino']}",
+            f"{vuelo['duracion_min']} min",
+            f"{vuelo['distancia_millas']} mi"
+        ])
+    
+    headers_ultimos = ["Fecha", "Salida", "Llegada", "Aerolínea", "Aeronave", "Ruta", "Duración", "Distancia"]
+    print(tabulate(tabla_ultimos, headers=headers_ultimos, tablefmt="fancy_grid", stralign="center"))
+    
+    print("\n" + "="*100)
+    
     return catalog, tiempo, total, primeros, ultimos
 
 
