@@ -6,6 +6,7 @@ from DataStructures.Map import map_separate_chaining as msc
 from DataStructures.priority_queue import priority_queue as pq
 from DataStructures.Tree import binary_search_tree as bst
 from DataStructures.Tree import red_black_tree as rbt
+from DataStructures.List import list_node as n
 from datetime import datetime
 import csv
 from math import sqrt
@@ -297,11 +298,67 @@ def req_2(catalog, dest, min_anticipation, max_anticipation):
 
     return tiempo, total, primeros, ultimos
 
-def req_3(catalog):
+def req_3(catalog, c_carrier, c_destino, rango_d):
     """
     Retorna el resultado del requerimiento 3
     """
+    # porsiacas rango_d es un list de dos elementos [min, max]
+
+    inicio = get_time()
+
+    rango_ini = rango_d[0]
+    rango_fin = rango_d[1]
+    vuelos = catalog["flights"]
+    filtrados = al.new_list()
+    for i in range(al.size(vuelos)):
+        temp = al.get_element(vuelos, i)
+        if temp["carrier"] == c_carrier and temp["dest"] == c_destino:
+            distancia = temp["distance"]
+            if rango_ini <= distancia <= rango_fin:
+                al.add_last(filtrados, temp)
+    
+    arbol = rbt.new_map()
+    for i in range(al.size(filtrados)):
+        vuelo = al.get_element(filtrados, i)
+        rbt.put(arbol, vuelo["id"], vuelo)
+    
+    def preorder_rec(nodo, lista):  # puse preorder para ser creativo pero si toca cambiarlo escriban por el wpp td bien
+        if nodo is not None:
+            preorder_rec(nodo["left"], lista)
+            preorder_rec(nodo["right"], lista)
+            al.add_last(lista, nodo["value"])
+
+    def preorder(tree):
+        lista = al.new_list()
+        if tree["root"] is not None:
+            preorder_rec(tree["root"], lista)
+        return lista
+    
+    filtrados_ordenados = preorder(arbol)
+    total = al.size(filtrados_ordenados)
+    if total > 10:
+        primeros = al.new_list()
+        ultimos = al.new_list()
+        limite = 5
+
+        info = al.sub_list(filtrados_ordenados, 0, limite)
+        al.add_last(primeros, info)
+
+        info = al.sub_list(filtrados_ordenados, total-limite, total)
+        al.add_last(ultimos, info)
+    else:
+        primeros = filtrados_ordenados
+        ultimos = None # si ultimos es none no se printea y ya xd
+    
+
+    final = get_time()
+    tiempo = delta_time(inicio, final)
+    return tiempo, total, primeros, ultimos
+
     # TODO: Modificar el requerimiento 3
+
+
+
     pass
 
 
