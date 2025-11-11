@@ -355,12 +355,6 @@ def req_3(catalog, c_carrier, c_destino, rango_d):
     tiempo = delta_time(inicio, final)
     return tiempo, total, primeros, ultimos # a estas horas (11/11/2025 2:37am) falta hacer el view, apenas me levante lo hago
 
-    # TODO: Modificar el requerimiento 3
-
-
-
-    pass
-
 
 def req_4(catalog):
     """
