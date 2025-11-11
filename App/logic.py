@@ -39,6 +39,9 @@ def load_data(catalog, filename):
         # Procesar horas programadas (para ordenar)
         hora_salida_prog = vuelo["sched_dep_time"] if vuelo["sched_dep_time"] != "" else "00:00"
         vuelo["sched_dep_time"] = datetime.strptime(hora_salida_prog, "%H:%M").time()
+        
+        hora_llegada_prog = vuelo["sched_arr_time"] if vuelo["sched_arr_time"] != "" else "00:00"
+        vuelo["sched_arr_time"] = datetime.strptime(hora_llegada_prog, "%H:%M").time()
 
         # Procesar campos numéricos
         vuelo["air_time"] = float(vuelo["air_time"]) if vuelo["air_time"] != "" else 0.0
@@ -126,29 +129,27 @@ def req_1(catalog, code, min_delay, max_delay):
             sched = v["sched_dep_time"]
             real = v["dep_time"]
 
-            if sched == "" or real == "":
-                continue
 
-            sched_h = datetime.strptime(sched, "%H:%M")
-            real_h = datetime.strptime(real, "%H:%M")
+            sched_min = sched.hour * 60 + sched.minute
+            real_min = real.hour * 60 + real.minute
 
-            diff = (real_h - sched_h).total_seconds() / 60
+            diff = real_min - sched_min
 
             # Ajuste si cruza la medianoche
-            if diff < -720:
+            if diff < -720:  
                 diff += 1440
-            elif diff > 720:
+            elif diff > 720:  
                 diff -= 1440
 
             if min_delay <= diff <= max_delay:
-                v["retraso"] = round(diff, 2)
-                al.add_last(filtrados, v)
+                vuelo_con_retraso = v.copy()
+                vuelo_con_retraso["retraso"] = round(diff, 2)
+                al.add_last(filtrados, vuelo_con_retraso)
 
     arbol = bst.new_map()
 
     for i in range(al.size(filtrados)):
         vuelo = al.get_element(filtrados, i)
-        # clave: tupla (retraso, fecha, hora)
         key = (vuelo["retraso"], vuelo["date"], vuelo["dep_time"])
         bst.put(arbol, key, vuelo)
 
@@ -160,54 +161,50 @@ def req_1(catalog, code, min_delay, max_delay):
 
     def inorder(tree):
         lista = al.new_list()
-        inorder_rec(tree["root"], lista)
+        if tree["root"] is not None:
+            inorder_rec(tree["root"], lista)
         return lista
 
-    filtrados = inorder(arbol)
+    filtrados_ordenados = inorder(arbol)
+    total = al.size(filtrados_ordenados)
 
-    total = al.size(filtrados)
     primeros = al.new_list()
     ultimos = al.new_list()
     limite = min(5, total)
 
     for i in range(limite):
-        elem = al.get_element(filtrados, i)
+        elem = al.get_element(filtrados_ordenados, i)
         info = {
             "id_vuelo": elem["id"],
             "codigo_vuelo": elem["flight"],
-            "fecha": elem["date"],
+            "fecha": elem["date"].strftime("%Y-%m-%d"),
             "nombre_aerolinea": elem["name"],
             "codigo_aerolinea": elem["carrier"],
             "aeropuerto_origen": elem["origin"],
             "aeropuerto_destino": elem["dest"],
-            "retraso_min": round(elem["retraso"], 2)
+            "retraso_min": elem["retraso"]
         }
         al.add_last(primeros, info)
 
-    for i in range(total - limite, total):
-        elem = al.get_element(filtrados, i)
-        info = {
-            "id_vuelo": elem["id"],
-            "codigo_vuelo": elem["flight"],
-            "fecha": elem["date"],
-            "nombre_aerolinea": elem["name"],
-            "codigo_aerolinea": elem["carrier"],
-            "aeropuerto_origen": elem["origin"],
-            "aeropuerto_destino": elem["dest"],
-            "retraso_min": round(elem["retraso"], 2)
-        }
-        al.add_last(ultimos, info)
+    if total > 10:
+        for i in range(total - 5, total):
+            elem = al.get_element(filtrados_ordenados, i)
+            info = {
+                "id_vuelo": elem["id"],
+                "codigo_vuelo": elem["flight"],
+                "fecha": elem["date"].strftime("%Y-%m-%d"),
+                "nombre_aerolinea": elem["name"],
+                "codigo_aerolinea": elem["carrier"],
+                "aeropuerto_origen": elem["origin"],
+                "aeropuerto_destino": elem["dest"],
+                "retraso_min": elem["retraso"]
+            }
+            al.add_last(ultimos, info)
 
     final = get_time()
     tiempo = delta_time(inicio, final)
 
-    resultado = al.new_list()
-    al.add_last(resultado, {"tiempo_ms": round(tiempo, 2)})
-    al.add_last(resultado, {"total_vuelos": total})
-    al.add_last(resultado, {"primeros": primeros})
-    al.add_last(resultado, {"ultimos": ultimos})
-
-    return resultado
+    return tiempo, total, primeros, ultimos
 
 def req_2(catalog, dest, min_anticipation, max_anticipation):
 
@@ -223,13 +220,10 @@ def req_2(catalog, dest, min_anticipation, max_anticipation):
             sched_arr = vuelo["sched_arr_time"]
             real_arr = vuelo["arr_time"]
 
-            if sched_arr == "" or real_arr == "":
-                continue
+            sched_min = sched_arr.hour * 60 + sched_arr.minute
+            real_min = real_arr.hour * 60 + real_arr.minute
 
-            sched_time = datetime.strptime(sched_arr, "%H:%M")
-            real_time = datetime.strptime(real_arr, "%H:%M")
-
-            diff = (real_time - sched_time).total_seconds() / 60
+            diff = real_min - sched_min
 
             if diff < -720:
                 diff += 1440
@@ -239,8 +233,9 @@ def req_2(catalog, dest, min_anticipation, max_anticipation):
             if diff < 0:
                 anticipo = abs(diff)
                 if min_anticipation <= anticipo <= max_anticipation:
-                    vuelo["anticipation"] = round(anticipo, 2)
-                    al.add_last(filtrados, vuelo)
+                    vuelo_copia = dict(vuelo)
+                    vuelo_copia["anticipation"] = round(anticipo, 2)
+                    al.add_last(filtrados, vuelo_copia)
 
     arbol = bst.new_map()
 
@@ -255,24 +250,25 @@ def req_2(catalog, dest, min_anticipation, max_anticipation):
             al.add_last(lista, nodo["value"])
             inorder_rec(nodo["right"], lista)
 
-    def inorder(arbol):
+    def inorder(tree):
         lista = al.new_list()
-        inorder_rec(arbol["root"], lista)
+        if tree["root"] is not None:
+            inorder_rec(tree["root"], lista)
         return lista
 
-    filtrados = inorder(arbol)
+    filtrados_ordenados = inorder(arbol)
+    total = al.size(filtrados_ordenados)
 
-    total = al.size(filtrados)
     primeros = al.new_list()
     ultimos = al.new_list()
     limite = min(5, total)
 
     for i in range(limite):
-        f = al.get_element(filtrados, i)
+        f = al.get_element(filtrados_ordenados, i)
         info = {
             "id": f["id"],
             "flight": f["flight"],
-            "date": f["date"],
+            "date": f["date"].strftime("%Y-%m-%d"),
             "airline_name": f["name"],
             "airline_code": f["carrier"],
             "origin": f["origin"],
@@ -281,30 +277,25 @@ def req_2(catalog, dest, min_anticipation, max_anticipation):
         }
         al.add_last(primeros, info)
 
-    for i in range(total - limite, total):
-        f = al.get_element(filtrados, i)
-        info = {
-            "id": f["id"],
-            "flight": f["flight"],
-            "date": f["date"],
-            "airline_name": f["name"],
-            "airline_code": f["carrier"],
-            "origin": f["origin"],
-            "dest": f["dest"],
-            "anticipation_min": f["anticipation"]
-        }
-        al.add_last(ultimos, info)
+    if total > 10:
+        for i in range(total - 5, total):
+            f = al.get_element(filtrados_ordenados, i)
+            info = {
+                "id": f["id"],
+                "flight": f["flight"],
+                "date": f["date"].strftime("%Y-%m-%d"),
+                "airline_name": f["name"],
+                "airline_code": f["carrier"],
+                "origin": f["origin"],
+                "dest": f["dest"],
+                "anticipation_min": f["anticipation"]
+            }
+            al.add_last(ultimos, info)
 
     final = get_time()
     tiempo = delta_time(inicio, final)
-    retorno = al.new_list()
 
-    al.add_last(retorno, {"tiempo": round(tiempo, 2)})
-    al.add_last(retorno, {"total_vuelos": total})
-    al.add_last(retorno, {"primeros": primeros})
-    al.add_last(retorno, {"ultimos": ultimos})
-
-    return retorno
+    return tiempo, total, primeros, ultimos
 
 def req_3(catalog):
     """
