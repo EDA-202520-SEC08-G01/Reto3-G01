@@ -96,8 +96,7 @@ def print_req_1(control):
     print("\n" + "="*100)
     print(" "*25 + "REQUERIMIENTO 1: VUELOS CON RETRASO EN SALIDA")
     print("="*100)
-    
-    # Solicitar datos de entrada
+
     code = input("\nIngrese el código de la aerolínea (ej: UA): ").strip().upper()
     
     try:
@@ -112,8 +111,7 @@ def print_req_1(control):
         return
 
     tiempo, total, primeros, ultimos = l.req_1(control, code, min_delay, max_delay)
-    
-    # Mostrar resultados
+
     print("\n" + "-"*100)
     print("RESULTADOS")
     print("-"*100)
@@ -126,8 +124,7 @@ def print_req_1(control):
         print("\nNo se encontraron vuelos que cumplan con los criterios especificados.")
         print("="*100 + "\n")
         return
-    
-    # Mostrar primeros 5 vuelos
+
     if al.size(primeros) > 0:
         print("\n" + "-"*100)
         if total <= 10:
@@ -147,7 +144,7 @@ def print_req_1(control):
                 vuelo['nombre_aerolinea'],
                 vuelo['aeropuerto_origen'],
                 vuelo['aeropuerto_destino'],
-                f"{vuelo['retraso_min']:+.2f}"  # El + muestra el signo
+                f"{vuelo['retraso_min']:+.2f}" 
             ])
         
         headers = ["ID", "Código\nVuelo", "Fecha", "Cód.\nAerolínea", "Nombre Aerolínea", 
@@ -189,7 +186,6 @@ def print_req_2(control):
     print(" "*25 + "REQUERIMIENTO 2: VUELOS CON ANTICIPO EN LLEGADA")
     print("="*100)
     
-    # Solicitar datos de entrada
     dest = input("\nIngrese el código del aeropuerto de destino (ej: JFK): ").strip().upper()
     
     try:
@@ -206,11 +202,9 @@ def print_req_2(control):
     if min_anticipation < 0 or max_anticipation < 0:
         print("Error: Los valores de anticipo deben ser positivos.")
         return
-    
-    # Ejecutar requerimiento
+
     tiempo, total, primeros, ultimos = l.req_2(control, dest, min_anticipation, max_anticipation)
-    
-    # Mostrar resultados
+
     print("\n" + "-"*100)
     print("RESULTADOS")
     print("-"*100)
@@ -223,8 +217,7 @@ def print_req_2(control):
         print("\nNo se encontraron vuelos que cumplan con los criterios especificados.")
         print("="*100 + "\n")
         return
-    
-    # Mostrar primeros 5 vuelos
+
     if al.size(primeros) > 0:
         print("\n" + "-"*100)
         if total <= 10:
@@ -250,8 +243,7 @@ def print_req_2(control):
         headers = ["ID", "Código\nVuelo", "Fecha", "Cód.\nAerolínea", "Nombre Aerolínea", 
                    "Origen", "Destino", "Anticipo\n(min)"]
         print(tabulate(tabla_primeros, headers=headers, tablefmt="grid"))
-    
-    # Mostrar últimos 5 vuelos si hay más de 10
+
     if al.size(ultimos) > 0 and total > 10:
         print("\n" + "-"*100)
         print(" "*35 + "ÚLTIMOS 5 VUELOS")
@@ -306,6 +298,86 @@ def print_req_6(control):
         Función que imprime la solución del Requerimiento 6 en consola
     """
     # TODO: Imprimir el resultado del requerimiento 6
+    print("\n" + "="*120)
+    print(" "*30 + "REQUERIMIENTO 6: AEROLÍNEAS MÁS ESTABLES EN HORA DE SALIDA")
+    print("="*120)
+
+    print("\nIngrese el rango de fechas (formato AAAA-MM-DD):")
+    f_inicial = input("  Fecha inicial: ").strip()
+    f_final = input("  Fecha final: ").strip()
+    
+    print("\nIngrese el rango de distancias (en millas):")
+    try:
+        d_min = float(input("  Distancia mínima: "))
+        d_max = float(input("  Distancia máxima: "))
+    except ValueError:
+        print("Error: Las distancias deben ser valores numéricos.")
+        return
+    
+    try:
+        m = int(input("\nIngrese la cantidad M de aerolíneas a mostrar: "))
+    except ValueError:
+        print("Error: M debe ser un número entero.")
+        return
+
+    tiempo, total, aerolineas = l.req_6(control, f_inicial, f_final, d_min, d_max, m)
+
+    print("\n" + "-"*120)
+    print("RESULTADOS")
+    print("-"*120)
+    print(f"Tiempo de ejecución: {tiempo:.2f} ms")
+    print(f"Total de aerolíneas analizadas: {total}")
+    print(f"Rango de fechas: {f_inicial} a {f_final}")
+    print(f"Rango de distancias: {d_min} - {d_max} millas")
+    print(f"Top {m} aerolíneas más estables")
+    
+    if total == 0:
+        print("\nNo se encontraron aerolíneas que cumplan con los criterios especificados.")
+        print("="*120 + "\n")
+        return
+
+    print("\n" + "-"*120)
+    print(" "*40 + f"TOP {total} AEROLÍNEAS MÁS ESTABLES")
+    print("-"*120)
+    
+    tabla = []
+    for i in range(al.size(aerolineas)):
+        aerolinea = al.get_element(aerolineas, i)
+        tabla.append([
+            i + 1,
+            aerolinea['codigo_aerolinea'],
+            aerolinea['nombre_aerolinea'],
+            f"{aerolinea['vuelos_analizados']:,}",
+            f"{aerolinea['promedio_min']:+.2f}",
+            f"{aerolinea['estabilidad_min']:.2f}"
+        ])
+    
+    headers = ["#", "Código", "Nombre Aerolínea", "Vuelos\nAnalizados", 
+               "Promedio\nRetraso (min)", "Estabilidad\n(Desv. Est. (min))"]
+    print(tabulate(tabla, headers=headers, tablefmt="grid"))
+
+    print("\n" + "-"*120)
+    print(" "*35 + "DETALLE DE VUELO MÁS CERCANO AL PROMEDIO")
+    print("-"*120)
+    
+    for i in range(al.size(aerolineas)):
+        aerolinea = al.get_element(aerolineas, i)
+        vuelo = aerolinea['vuelo_cercano']
+        
+        print(f"\n {i+1}. {aerolinea['nombre_aerolinea']} ({aerolinea['codigo_aerolinea']})")
+        print(f"Estadísticas:")
+        print(f"• Vuelos analizados: {aerolinea['vuelos_analizados']:,}")
+        print(f"• Promedio de retraso: {aerolinea['promedio_min']:+.2f} min")
+        print(f"• Estabilidad : {aerolinea['estabilidad_min']:.2f} min")
+        print(f"• Vuelo más representativo:")
+        print(f"• ID: {vuelo['id']}")
+        print(f"• Código: {vuelo['codigo_vuelo']}")
+        print(f"• Salida: {vuelo['fecha_hora_salida']}")
+        print(f"• Ruta: {vuelo['origen']} → {vuelo['destino']}")
+    
+    print("\n" + "="*120)
+    print("Nota: Menor desviación estándar = Mayor estabilidad en horarios de salida")
+    print("="*120 + "\n")
     pass
 
 # Se crea la lógica asociado a la vista
@@ -339,7 +411,7 @@ def main():
         elif int(inputs) == 5:
             print_req_5(control)
 
-        elif int(inputs) == 5:
+        elif int(inputs) == 6:
             print_req_6(control)
 
         elif int(inputs) == 7:
