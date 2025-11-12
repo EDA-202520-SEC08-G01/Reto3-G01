@@ -493,49 +493,47 @@ def req_6(catalog,f_inicial, f_final, d_min, d_max, m):
     for i in range(al.size(flights)):
         v = al.get_element(flights, i)
 
-        if v["date"] != "" and v["distance"] != "":
-            f_v = datetime.strptime(v["date"], "%Y-%m-%d")
-            dist = float(v["distance"])
+        f_v = v["date"]
+        dist = v["distance"]
 
-            if (fecha_ini <= f_v <= fecha_fin) and (d_min <= dist <= d_max):
-                sched_dep = v["sched_dep_time"]
-                real_dep = v["dep_time"]
+        if (fecha_ini <= f_v <= fecha_fin) and (d_min <= dist <= d_max):
+            sched_dep = v["sched_dep_time"]
+            real_dep = v["dep_time"]
 
-                if sched_dep != "" and real_dep != "":
-                    t_sched = datetime.strptime(sched_dep, "%H:%M")
-                    t_real = datetime.strptime(real_dep, "%H:%M")
-                    diff = (t_real - t_sched).total_seconds() / 60.0
+            sched_min = sched_dep.hour * 60 + sched_dep.minute
+            real_min = real_dep.hour * 60 + real_dep.minute
 
-                    # Ajuste por cruce de medianoche
-                    if diff < -720:
-                        diff += 1440
-                    elif diff > 720:
-                        diff -= 1440
+            diff = real_min - sched_min
 
-                    code = v["carrier"]
-                    reg = mlp.get(por_aerolinea, code)
-                    if reg is None:
-                        reg = {
-                            "code": code,
-                            "name": v["name"],
-                            "delays": al.new_list(),
-                            "flights": al.new_list()
-                        }
+            if diff < -720:
+                diff += 1440
+            elif diff > 720:
+                diff -= 1440
 
-                    al.add_last(reg["delays"], diff)
+            code = v["carrier"]
+            reg = mlp.get(por_aerolinea, code)
+            if reg is None:
+                reg = {
+                    "code": code,
+                    "name": v["name"],
+                    "delays": al.new_list(),
+                    "flights": al.new_list()
+                }
 
-                    info_vuelo = {
-                        "id": v["id"],
-                        "flight": v["flight"],
-                        "date": v["date"],
-                        "dep_time": v["dep_time"],
-                        "origin": v["origin"],
-                        "dest": v["dest"],
-                        "delay": diff
-                    }
+            al.add_last(reg["delays"], diff)
 
-                    al.add_last(reg["flights"], info_vuelo)
-                    mlp.put(por_aerolinea, code, reg)
+            info_vuelo = {
+                "id": v["id"],
+                "flight": v["flight"],
+                "date": v["date"].strftime("%Y-%m-%d"),
+                "dep_time": v["dep_time"].strftime("%H:%M"),
+                "origin": v["origin"],
+                "dest": v["dest"],
+                "delay": diff
+            }
+
+            al.add_last(reg["flights"], info_vuelo)
+            mlp.put(por_aerolinea, code, reg)
 
     def promedio(lista):
         n = al.size(lista)
@@ -567,7 +565,7 @@ def req_6(catalog,f_inicial, f_final, d_min, d_max, m):
                 mejor = fv
                 mejor_abs = d
         return mejor
-    
+
     heap = pq.new_heap(is_min_pq=True)
     keys = mlp.key_set(por_aerolinea)
 
@@ -583,6 +581,7 @@ def req_6(catalog,f_inicial, f_final, d_min, d_max, m):
 
             resumen = {
                 "codigo_aerolinea": reg["code"],
+                "nombre_aerolinea": reg["name"],
                 "vuelos_analizados": n_vuelos,
                 "promedio_min": round(mu, 2),
                 "estabilidad_min": round(sd, 2),
@@ -595,29 +594,23 @@ def req_6(catalog,f_inicial, f_final, d_min, d_max, m):
                 }
             }
 
+            # La clave es (desviación_estándar, promedio) para ordenar
+            # primero por estabilidad, luego por promedio en caso de empate
             pq.insert(heap, (sd, mu), resumen)
 
+    # Extraer las M aerolíneas
     aerolineas = al.new_list()
     total_heap = pq.size(heap)
-    extraer = m
-    if total_heap < m:
-        extraer = total_heap
+    extraer = min(m, total_heap)
 
-    j = 0
-    while j < extraer:
+    for j in range(extraer):
         val = pq.remove(heap)
         al.add_last(aerolineas, val)
-        j += 1
 
     final = get_time()
     tiempo = delta_time(inicio, final)
 
-    retorno = al.new_list()
-    al.add_last(retorno, {"tiempo": round(tiempo, 2)})
-    al.add_last(retorno, {"total_aerolineas": extraer})
-    al.add_last(retorno, {"aerolineas": aerolineas})
-
-    return retorno
+    return tiempo, extraer, aerolineas
 
 
 # Funciones para medir tiempos de ejecucion
