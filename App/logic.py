@@ -310,50 +310,97 @@ def req_3(catalog, c_carrier, c_destino, rango_d):
     rango_fin = rango_d[1]
     vuelos = catalog["flights"]
     filtrados = al.new_list()
+    
     for i in range(al.size(vuelos)):
         temp = al.get_element(vuelos, i)
+        
         if temp["carrier"] == c_carrier and temp["dest"] == c_destino:
+            # temp["distance"] ya es float
             distancia = temp["distance"]
+            
             if rango_ini <= distancia <= rango_fin:
                 al.add_last(filtrados, temp)
     
+    # Usar RBT para ordenar por (distancia, fecha, hora_llegada_real)
     arbol = rbt.new_map()
+    
     for i in range(al.size(filtrados)):
         vuelo = al.get_element(filtrados, i)
-        rbt.put(arbol, vuelo["id"], vuelo)
+        key = (vuelo["distance"], vuelo["date"], vuelo["arr_time"])
+        rbt.put(arbol, key, vuelo)
     
-    def preorder_rec(nodo, lista):  # puse preorder para ser creativo pero si toca cambiarlo escriban por el wpp td bien
+    # Recorrido inorder del RBT para obtener vuelos ordenados
+    def inorder_rec(nodo, lista):
         if nodo is not None:
-            preorder_rec(nodo["left"], lista)
-            preorder_rec(nodo["right"], lista)
+            inorder_rec(nodo["left"], lista)
             al.add_last(lista, nodo["value"])
+            inorder_rec(nodo["right"], lista)
 
-    def preorder(tree):
+    def inorder(tree):
         lista = al.new_list()
         if tree["root"] is not None:
-            preorder_rec(tree["root"], lista)
+            inorder_rec(tree["root"], lista)
         return lista
     
-    filtrados_ordenados = preorder(arbol)
+    filtrados_ordenados = inorder(arbol)
     total = al.size(filtrados_ordenados)
-    if total > 10:
-        primeros = al.new_list()
-        ultimos = al.new_list()
-        limite = 5
-
-        info = al.sub_list(filtrados_ordenados, 0, limite)
-        al.add_last(primeros, info)
-
-        info = al.sub_list(filtrados_ordenados, total-limite, total)
-        al.add_last(ultimos, info)
-    else:
-        primeros = filtrados_ordenados
-        ultimos = None # si ultimos es none no se printea y ya xd
     
+    # Extraer primeros y últimos 5
+    primeros = al.new_list()
+    ultimos = al.new_list()
+    
+    if total > 10:
+        # Primeros 5
+        for i in range(5):
+            vuelo = al.get_element(filtrados_ordenados, i)
+            info = {
+                "id": vuelo["id"],
+                "flight": vuelo["flight"],
+                "date": vuelo["date"].strftime("%Y-%m-%d"),
+                "Hora_llegada_real": vuelo["arr_time"].strftime("%H:%M"),
+                "carrier": vuelo["carrier"],
+                "name": vuelo["name"],
+                "origin": vuelo["origin"],
+                "dest": vuelo["dest"],
+                "distance": round(vuelo["distance"], 2)
+            }
+            al.add_last(primeros, info)
+        
+        # Últimos 5
+        for i in range(total - 5, total):
+            vuelo = al.get_element(filtrados_ordenados, i)
+            info = {
+                "id": vuelo["id"],
+                "flight": vuelo["flight"],
+                "date": vuelo["date"].strftime("%Y-%m-%d"),
+                "Hora_llegada_real": vuelo["arr_time"].strftime("%H:%M"),
+                "carrier": vuelo["carrier"],
+                "name": vuelo["name"],
+                "origin": vuelo["origin"],
+                "dest": vuelo["dest"],
+                "distance": round(vuelo["distance"], 2)
+            }
+            al.add_last(ultimos, info)
+    else:
+        # Si hay 10 o menos, mostrar todos en primeros
+        for i in range(total):
+            vuelo = al.get_element(filtrados_ordenados, i)
+            info = {
+                "id": vuelo["id"],
+                "flight": vuelo["flight"],
+                "date": vuelo["date"].strftime("%Y-%m-%d"),
+                "Hora_llegada_real": vuelo["arr_time"].strftime("%H:%M"),
+                "carrier": vuelo["carrier"],
+                "name": vuelo["name"],
+                "origin": vuelo["origin"],
+                "dest": vuelo["dest"],
+                "distance": round(vuelo["distance"], 2)
+            }
+            al.add_last(primeros, info)
 
     final = get_time()
     tiempo = delta_time(inicio, final)
-    return tiempo, total, primeros, ultimos # a estas horas (11/11/2025 2:37am) falta hacer el view, apenas me levante lo hago
+    return tiempo, total, primeros, ultimos 
 
 
 def req_4(catalog , f_inicial, f_final, h_inicio, h_final, n):
@@ -380,8 +427,6 @@ def req_4(catalog , f_inicial, f_final, h_inicio, h_final, n):
     for i in range(al.size(flights)):
         v = al.get_element(flights, i)
 
-        # v["date"] ya es datetime, v["sched_dep_time"] ya es time
-        # v["air_time"] y v["distance"] ya son float
         f_v = v["date"]
         if (fecha_ini <= f_v <= fecha_fin):
             t_prog = v["sched_dep_time"]

@@ -274,6 +274,99 @@ def print_req_3(control):
         Función que imprime la solución del Requerimiento 3 en consola
     """
     # TODO: Imprimir el resultado del requerimiento 3
+    print("\n" + "="*100)
+    print(" "*20 + "REQUERIMIENTO 3: VUELOS POR AEROLÍNEA, DESTINO Y DISTANCIA")
+    print("="*100)
+    
+    # Solicitar datos de entrada
+    c_carrier = input("\nIngrese el código de la aerolínea (ej: AA, EV, UA): ").strip().upper()
+    
+    print("\nEjemplos de aeropuertos: JFK, LAX, DEN, BOS, SFO, EWR, LGA, PHX, FLL, MCO")
+    c_destino = input("Ingrese el código del aeropuerto de destino: ").strip().upper()
+    
+    print("\nIngrese el rango de distancias (en millas):")
+    try:
+        d_min = float(input("  Distancia mínima: "))
+        d_max = float(input("  Distancia máxima: "))
+    except ValueError:
+        print("Error: Las distancias deben ser valores numéricos.")
+        return
+
+    if d_min > d_max:
+        print("Error: La distancia mínima no puede ser mayor que la máxima.")
+        return
+    
+    if d_min < 0 or d_max < 0:
+        print("Error: Las distancias deben ser valores positivos.")
+        return
+
+    rango_d = [d_min, d_max]
+    tiempo, total, primeros, ultimos = l.req_3(control, c_carrier, c_destino, rango_d)
+
+    print("\n" + "-"*100)
+    print("RESULTADOS")
+    print("-"*100)
+    print(f"Tiempo de ejecución: {tiempo:.2f} ms")
+    print(f"Total de vuelos encontrados: {total:,}")
+    print(f"Aerolínea: {c_carrier}")
+    print(f"Destino: {c_destino}")
+    print(f"Rango de distancias: {d_min} - {d_max} millas")
+    
+    if total == 0:
+        print("\nNo se encontraron vuelos que cumplan con los criterios especificados.")
+        print("="*100 + "\n")
+        return
+
+    if al.size(primeros) > 0:
+        print("\n" + "-"*100)
+        if total <= 10:
+            print(" "*35 + f"TODOS LOS VUELOS ({total})")
+        else:
+            print(" "*40 + "PRIMEROS 5 VUELOS")
+        print("-"*100)
+        
+        tabla_primeros = []
+        for i in range(al.size(primeros)):
+            vuelo = al.get_element(primeros, i)
+            tabla_primeros.append([
+                vuelo['id'],
+                vuelo['flight'],
+                vuelo['date'],
+                vuelo["Hora_llegada_real"],
+                vuelo['carrier'],
+                vuelo['name'],
+                vuelo['origin'],
+                vuelo['dest'],
+                f"{vuelo['distance']:.2f}"
+            ])
+        
+        headers = ["ID", "Código\nVuelo", "Fecha", "Hora", "Cód.\nAerolínea", 
+                   "Nombre Aerolínea", "Origen", "Destino", "Distancia\n(millas)"]
+        print(tabulate(tabla_primeros, headers=headers, tablefmt="grid"))
+
+    if al.size(ultimos) > 0 and total > 10:
+        print("\n" + "-"*100)
+        print(" "*40 + "ÚLTIMOS 5 VUELOS")
+        print("-"*100)
+        
+        tabla_ultimos = []
+        for i in range(al.size(ultimos)):
+            vuelo = al.get_element(ultimos, i)
+            tabla_ultimos.append([
+                vuelo['id'],
+                vuelo['flight'],
+                vuelo['date'],
+                vuelo["Hora_llegada_real"],
+                vuelo['carrier'],
+                vuelo['name'],
+                vuelo['origin'],
+                vuelo['dest'],
+                f"{vuelo['distance']:.2f}"
+            ])
+        
+        print(tabulate(tabla_ultimos, headers=headers, tablefmt="grid"))
+    
+    print("\n" + "="*100 + "\n")
     pass
 
 
