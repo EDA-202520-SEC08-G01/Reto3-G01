@@ -364,12 +364,121 @@ def req_4(catalog):
     pass
 
 
-def req_5(catalog):
-    """
-    Retorna el resultado del requerimiento 5
-    """
-    # TODO: Modificar el requerimiento 5
-    pass
+def req_5(catalog, f_inicial, f_final, destino, n):
+    
+    inicio = get_time()
+    flights = catalog["flights"]
+    por_aerolinea = mlp.new_map(al.size(flights), 0.7)
+
+    fecha_ini = datetime.strptime(f_inicial, "%Y-%m-%d")
+    fecha_fin = datetime.strptime(f_final, "%Y-%m-%d")
+
+    for i in range(al.size(flights)):
+        v = al.get_element(flights, i)
+
+        # Validaciones mínimas
+        if v["date"] != "" and v["dest"] == destino:
+            f_v = datetime.strptime(v["date"], "%Y-%m-%d")
+            if (fecha_ini <= f_v <= fecha_fin):
+                if v["sched_arr_time"] != "" and v["arr_time"] != "":
+                    # Calcular puntualidad (min): arr_time - sched_arr_time, ajustando cruce de medianoche
+                    t_sched = datetime.strptime(v["sched_arr_time"], "%H:%M")
+                    t_real  = datetime.strptime(v["arr_time"], "%H:%M")
+                    punt = (t_real - t_sched).total_seconds() / 60.0
+                    if punt < -720:
+                        punt += 1440
+                    elif punt > 720:
+                        punt -= 1440
+
+                    code = v["carrier"]
+                    reg = mlp.get(por_aerolinea, code)
+                    if reg is None:
+                        reg = {
+                            "code": code,
+                            "name": v["name"],
+                            "sum_punt": 0.0,
+                            "count": 0,
+                            "sum_air": 0.0,
+                            "sum_dist": 0.0,
+                            "max_dist": -1.0,
+                            "max_flight": None
+                        }
+
+                    # Acumulados
+                    reg["sum_punt"] += punt
+                    reg["count"] += 1
+
+                    if v["air_time"] != "":
+                        reg["sum_air"] += float(v["air_time"])
+                    if v["distance"] != "":
+                        dist_v = float(v["distance"])
+                        reg["sum_dist"] += dist_v
+                        # Actualizar vuelo de mayor distancia
+                        if dist_v > reg["max_dist"]:
+                            reg["max_dist"] = dist_v
+                            reg["max_flight"] = {
+                                "id": v["id"],
+                                "flight": v["flight"],
+                                "date": v["date"],
+                                "arr_time": v["arr_time"],
+                                "origin": v["origin"],
+                                "dest": v["dest"],
+                                "air_time": v["air_time"]
+                            }
+
+                    mlp.put(por_aerolinea, code, reg)
+
+    heap = pq.new_heap(is_min_pq=True)
+    keys = mlp.key_set(por_aerolinea)
+
+    for i in range(al.size(keys)):
+        code = al.get_element(keys, i)
+        reg = mlp.get(por_aerolinea, code)
+        if reg["count"] > 0 and reg["max_flight"] is not None:
+            prom_punt = reg["sum_punt"] / reg["count"]
+            prom_air  = reg["sum_air"] / reg["count"] if reg["count"] > 0 else 0.0
+            prom_dist = reg["sum_dist"] / reg["count"] if reg["count"] > 0 else 0.0
+
+            mf = reg["max_flight"]
+            resumen = {
+                "codigo_aerolinea": reg["code"],
+                "vuelos_analizados": reg["count"],
+                "duracion_promedio_min": round(prom_air, 2),
+                "distancia_promedio_millas": round(prom_dist, 2),
+                "puntualidad_promedio_min": round(prom_punt, 2),
+                "vuelo_mayor_distancia": {
+                    "id": mf["id"],
+                    "codigo_vuelo": mf["flight"],
+                    "fecha_hora_llegada": f'{mf["date"]} {mf["arr_time"]}',
+                    "origen": mf["origin"],
+                    "destino": mf["dest"],
+                    "duracion_min": float(mf["air_time"]) if mf["air_time"] != "" else 0.0
+                }
+            }
+
+            # Prioridad: (|promedio_puntualidad|, code) → más cercano a 0 primero; empate por código
+            prioridad = (abs(prom_punt), reg["code"])
+            pq.insert(heap, prioridad, resumen)
+
+    seleccion = al.new_list()
+    total_heap = pq.size(heap)
+    extraer = n if total_heap >= n else total_heap
+
+    j = 0
+    while j < extraer:
+        val = pq.remove(heap)   # value: el 'resumen' empacado arriba
+        al.add_last(seleccion, val)
+        j += 1
+
+    final = get_time()
+    tiempo = delta_time(inicio, final)
+
+    retorno = al.new_list()
+    al.add_last(retorno, {"tiempo": round(tiempo, 2)})
+    al.add_last(retorno, {"total_aerolineas": extraer})
+    al.add_last(retorno, {"aerolineas": seleccion})
+
+    return retorno
 
 def req_6(catalog,f_inicial, f_final, d_min, d_max, m):
        
