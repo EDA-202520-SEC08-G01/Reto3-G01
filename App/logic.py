@@ -356,12 +356,123 @@ def req_3(catalog, c_carrier, c_destino, rango_d):
     return tiempo, total, primeros, ultimos # a estas horas (11/11/2025 2:37am) falta hacer el view, apenas me levante lo hago
 
 
-def req_4(catalog):
-    """
-    Retorna el resultado del requerimiento 4
-    """
-    # TODO: Modificar el requerimiento 4
-    pass
+def req_4(catalog , f_inicial, f_final, h_inicio, h_final, n):
+
+    inicio = get_time()
+    flights = catalog["flights"]
+
+    fecha_ini = datetime.strptime(f_inicial, "%Y-%m-%d")
+    fecha_fin = datetime.strptime(f_final, "%Y-%m-%d")
+
+    t_ini = datetime.strptime(h_inicio, "%H:%M").time()
+    t_fin = datetime.strptime(h_final, "%H:%M").time()
+
+    def en_franja(t):
+        # Maneja franja normal y la que cruza medianoche
+        if t_ini <= t_fin:
+            return (t_ini <= t <= t_fin)
+        else:
+            # cruza medianoche: válido si t >= inicio o t <= final
+            return (t >= t_ini) or (t <= t_fin)
+
+    por_aerolinea = mlp.new_map(al.size(flights), 0.7)
+
+    for i in range(al.size(flights)):
+        v = al.get_element(flights, i)
+
+        if v["date"] != "" and v["sched_dep_time"] != "" and v["air_time"] != "" and v["distance"] != "":
+            f_v = datetime.strptime(v["date"], "%Y-%m-%d")
+            if (fecha_ini <= f_v <= fecha_fin):
+                t_prog = datetime.strptime(v["sched_dep_time"], "%H:%M").time()
+                if en_franja(t_prog):
+
+                    code = v["carrier"]
+                    reg = mlp.get(por_aerolinea, code)
+                    if reg is None:
+                        reg = {
+                            "code": code,
+                            "name": v["name"],
+                            "count": 0,
+                            "sum_air": 0.0,
+                            "sum_dist": 0.0,
+                            "best_air": None,         # menor duración (float)
+                            "best_dt_prog": None,     # datetime de fecha-hora programada (para desempate)
+                            "best_flight": None       # dict con datos del vuelo ganador
+                        }
+
+                    air = float(v["air_time"])
+                    dist = float(v["distance"])
+
+                    reg["count"] += 1
+                    reg["sum_air"] += air
+                    reg["sum_dist"] += dist
+
+                    # Candidato a vuelo de menor duración
+                    dt_prog = datetime.strptime(f'{v["date"]} {v["sched_dep_time"]}', "%Y-%m-%d %H:%M")
+                    if (reg["best_air"] is None) or (air < reg["best_air"]) or (air == reg["best_air"] and dt_prog < reg["best_dt_prog"]):
+                        reg["best_air"] = air
+                        reg["best_dt_prog"] = dt_prog
+                        reg["best_flight"] = {
+                            "id": v["id"],
+                            "flight": v["flight"],
+                            "date": v["date"],
+                            "sched_dep_time": v["sched_dep_time"],
+                            "origin": v["origin"],
+                            "dest": v["dest"],
+                            "air_time": air
+                        }
+
+                    mlp.put(por_aerolinea, code, reg)
+
+
+    heap = pq.new_heap(is_min_pq=True)
+    keys = mlp.key_set(por_aerolinea)
+
+    for i in range(al.size(keys)):
+        code = al.get_element(keys, i)
+        reg = mlp.get(por_aerolinea, code)
+        if reg["count"] > 0 and reg["best_flight"] is not None:
+            prom_air = reg["sum_air"] / reg["count"]
+            prom_dist = reg["sum_dist"] / reg["count"]
+
+            bf = reg["best_flight"]
+            resumen = {
+                "codigo_aerolinea": reg["code"],
+                "vuelos_programados": reg["count"],
+                "duracion_promedio_min": round(prom_air, 2),
+                "distancia_promedio_millas": round(prom_dist, 2),
+                "vuelo_menor_duracion": {
+                    "id": bf["id"],
+                    "codigo_vuelo": bf["flight"],
+                    "fecha_hora_salida_programada": f'{bf["date"]} {bf["sched_dep_time"]}',
+                    "origen": bf["origin"],
+                    "destino": bf["dest"],
+                    "duracion_min": round(bf["air_time"], 2)
+                }
+            }
+
+            prioridad = (-reg["count"], reg["code"])  # min-heap → mayor count primero; empate por código asc
+            pq.insert(heap, prioridad, resumen)
+
+    seleccion = al.new_list()
+    total_heap = pq.size(heap)
+    extraer = n if total_heap >= n else total_heap
+
+    j = 0
+    while j < extraer:
+        val = pq.remove(heap)
+        al.add_last(seleccion, val)
+        j += 1
+
+    final = get_time()
+    tiempo = delta_time(inicio, final)
+
+    retorno = al.new_list()
+    al.add_last(retorno, {"tiempo": round(tiempo, 2)})
+    al.add_last(retorno, {"total_aerolineas": extraer})
+    al.add_last(retorno, {"aerolineas": seleccion})
+
+    return retorno
 
 
 def req_5(catalog, f_inicial, f_final, destino, n):
@@ -381,11 +492,10 @@ def req_5(catalog, f_inicial, f_final, destino, n):
             f_v = datetime.strptime(v["date"], "%Y-%m-%d")
             if (fecha_ini <= f_v <= fecha_fin):
                 if v["sched_arr_time"] != "" and v["arr_time"] != "":
-                    # Calcular puntualidad (min): arr_time - sched_arr_time, ajustando cruce de medianoche
                     t_sched = datetime.strptime(v["sched_arr_time"], "%H:%M")
                     t_real  = datetime.strptime(v["arr_time"], "%H:%M")
                     punt = (t_real - t_sched).total_seconds() / 60.0
-                    if punt < -720:
+                    if punt < -720: # <- esta cagada corrige los cruces de medianoche
                         punt += 1440
                     elif punt > 720:
                         punt -= 1440
