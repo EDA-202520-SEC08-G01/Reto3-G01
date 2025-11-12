@@ -282,6 +282,77 @@ def print_req_4(control):
         Función que imprime la solución del Requerimiento 4 en consola
     """
     # TODO: Imprimir el resultado del requerimiento 4
+    print("\n" + "="*120)
+    print(" "*25 + "REQUERIMIENTO 4: AEROLÍNEAS CON MÁS VUELOS EN FRANJA HORARIA")
+    print("="*120)
+
+    print("\nIngrese el rango de fechas (formato AAAA-MM-DD):")
+    f_inicial = input("  Fecha inicial: ").strip()
+    f_final = input("  Fecha final: ").strip()
+    
+    print("\nIngrese la franja horaria de salida (formato HH:MM):")
+    h_inicio = input("  Hora inicio: ").strip()
+    h_final = input("  Hora final: ").strip()
+    
+    try:
+        n = int(input("\nIngrese la cantidad N de aerolíneas a mostrar: "))
+    except ValueError:
+        print("Error: N debe ser un número entero.")
+        return
+
+    tiempo, total, aerolineas = l.req_4(control, f_inicial, f_final, h_inicio, h_final, n)
+ 
+    print("\n" + "-"*120)
+    print("RESULTADOS")
+    print("-"*120)
+    print(f"Tiempo de ejecución: {tiempo:.2f} ms")
+    print(f"Total de aerolíneas consideradas: {total}")
+    print(f"Rango de fechas: {f_inicial} a {f_final}")
+    print(f"Franja horaria: {h_inicio} - {h_final}")
+    print(f"Top {n} aerolíneas con más vuelos")
+    
+    if total == 0:
+        print("\nNo se encontraron aerolíneas que cumplan con los criterios especificados.")
+        print("="*120 + "\n")
+        return
+
+    print("\n" + "-"*120)
+    print(" "*35 + f"TOP {total} AEROLÍNEAS POR CANTIDAD DE VUELOS")
+    print("-"*120)
+    
+    tabla = []
+    for i in range(al.size(aerolineas)):
+        aerolinea = al.get_element(aerolineas, i)
+        tabla.append([
+            i + 1,
+            aerolinea['codigo_aerolinea'],
+            aerolinea['nombre_aerolinea'],
+            f"{aerolinea['vuelos_programados']:,}",
+            f"{aerolinea['duracion_promedio_min']:.2f}",
+            f"{aerolinea['distancia_promedio_millas']:.2f}"
+        ])
+    
+    headers = ["#", "Código", "Nombre Aerolínea", "Vuelos\nProgramados", 
+               "Duración\nPromedio (min)", "Distancia\nPromedio (mi)"]
+    print(tabulate(tabla, headers=headers, tablefmt="grid"))
+    
+    print("\n" + "-"*120)
+    print(" "*35 + "VUELO DE MENOR DURACIÓN POR AEROLÍNEA")
+    print("-"*120)
+    
+    for i in range(al.size(aerolineas)):
+        aerolinea = al.get_element(aerolineas, i)
+        vuelo = aerolinea['vuelo_menor_duracion']
+        
+        print(f"\n{i+1}. {aerolinea['nombre_aerolinea']} ({aerolinea['codigo_aerolinea']})")
+        print(f"      • Vuelo con menor duracion:")
+        print(f"      • ID: {vuelo['id']}")
+        print(f"      • Código: {vuelo['codigo_vuelo']}")
+        print(f"      • Salida programada: {vuelo['fecha_hora_salida_programada']}")
+        print(f"      • Ruta: {vuelo['origen']} → {vuelo['destino']}")
+        print(f"      • Duración: {vuelo['duracion_min']:.2f} min")
+    
+    print("\n" + "="*120 + "\n")
     pass
 
 
@@ -290,6 +361,84 @@ def print_req_5(control):
         Función que imprime la solución del Requerimiento 5 en consola
     """
     # TODO: Imprimir el resultado del requerimiento 5
+    print("\n" + "="*120)
+    print(" "*25 + "REQUERIMIENTO 5: AEROLÍNEAS MÁS PUNTUALES EN LLEGADA")
+    print("="*120)
+    
+    # Solicitar datos de entrada
+    print("\nIngrese el rango de fechas (formato AAAA-MM-DD):")
+    f_inicial = input("  Fecha inicial: ").strip()
+    f_final = input("  Fecha final: ").strip()
+    
+    print("\nEjemplos de aeropuertos: JFK, LAX, DEN, BOS, SFO, EWR, LGA, PHX, FLL, MCO")
+    destino = input("Ingrese el código del aeropuerto de destino: ").strip().upper()
+    
+    try:
+        n = int(input("\nIngrese la cantidad N de aerolíneas a mostrar: "))
+    except ValueError:
+        print("Error: N debe ser un número entero.")
+        return
+    
+
+    tiempo, total, aerolineas = l.req_5(control, f_inicial, f_final, destino, n)
+
+    print("\n" + "-"*120)
+    print("RESULTADOS")
+    print("-"*120)
+    print(f"Tiempo de ejecución: {tiempo:.2f} ms")
+    print(f"Total de aerolíneas consideradas: {total}")
+    print(f"Rango de fechas: {f_inicial} a {f_final}")
+    print(f"Aeropuerto de destino: {destino}")
+    print(f"Top {n} aerolíneas más puntuales")
+    
+    if total == 0:
+        print("\nNo se encontraron aerolíneas que cumplan con los criterios especificados.")
+        print("Verifique que el código del aeropuerto sea correcto y que existan vuelos en ese rango de fechas.")
+        print("="*120 + "\n")
+        return
+    
+    # Mostrar tabla de aerolíneas
+    print("\n" + "-"*120)
+    print(" "*35 + f"TOP {total} AEROLÍNEAS MÁS PUNTUALES")
+    print("-"*120)
+    
+    tabla = []
+    for i in range(al.size(aerolineas)):
+        aerolinea = al.get_element(aerolineas, i)
+        tabla.append([
+            i + 1,
+            aerolinea['codigo_aerolinea'],
+            aerolinea['nombre_aerolinea'],
+            f"{aerolinea['vuelos_analizados']:,}",
+            f"{aerolinea['puntualidad_promedio_min']:+.2f}",
+            f"{aerolinea['duracion_promedio_min']:.2f}",
+            f"{aerolinea['distancia_promedio_millas']:.2f}"
+        ])
+    
+    headers = ["#", "Código", "Nombre Aerolínea", "Vuelos\nAnalizados", 
+               "Puntualidad\nPromedio (min)", "Duración\nPromedio (min)", "Distancia\nPromedio (mi)"]
+    print(tabulate(tabla, headers=headers, tablefmt="grid"))
+    
+    # Mostrar detalles de vuelo de mayor distancia
+    print("\n" + "-"*120)
+    print(" "*35 + "VUELO DE MAYOR DISTANCIA POR AEROLÍNEA")
+    print("-"*120)
+    
+    for i in range(al.size(aerolineas)):
+        aerolinea = al.get_element(aerolineas, i)
+        vuelo = aerolinea['vuelo_mayor_distancia']
+        
+        print(f"\n {i+1}. {aerolinea['nombre_aerolinea']} ({aerolinea['codigo_aerolinea']})")
+        print(f"      • Vuelo de mayor distancia recorrida:")
+        print(f"      • ID: {vuelo['id']}")
+        print(f"      • Código: {vuelo['codigo_vuelo']}")
+        print(f"      • Llegada: {vuelo['fecha_hora_llegada']}")
+        print(f"      • Ruta: {vuelo['origen']} → {vuelo['destino']}")
+        print(f"      • Duración: {vuelo['duracion_min']:.2f} min")
+    
+    print("\n" + "="*120)
+    print("Nota: Puntualidad cercana a 0 = Más puntual | Positivo = Retraso | Negativo = Anticipo")
+    print("="*120 + "\n")
     pass
 
 
@@ -365,11 +514,7 @@ def print_req_6(control):
         vuelo = aerolinea['vuelo_cercano']
         
         print(f"\n {i+1}. {aerolinea['nombre_aerolinea']} ({aerolinea['codigo_aerolinea']})")
-        print(f"Estadísticas:")
-        print(f"• Vuelos analizados: {aerolinea['vuelos_analizados']:,}")
-        print(f"• Promedio de retraso: {aerolinea['promedio_min']:+.2f} min")
-        print(f"• Estabilidad : {aerolinea['estabilidad_min']:.2f} min")
-        print(f"• Vuelo más representativo:")
+        print(f"• Vuelo con retraso mas cercano al promedio:")
         print(f"• ID: {vuelo['id']}")
         print(f"• Código: {vuelo['codigo_vuelo']}")
         print(f"• Salida: {vuelo['fecha_hora_salida']}")
