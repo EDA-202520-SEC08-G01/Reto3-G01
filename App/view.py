@@ -42,6 +42,7 @@ def load_data(control):
     for vuelo in primeros:
         tabla_primeros.append([
             vuelo['fecha'],
+            vuelo["hora_salida_programada"],
             vuelo['hora_salida'],
             vuelo['hora_llegada'],
             f"{vuelo['codigo_aerolinea']}\n{vuelo['nombre_aerolinea']}",
@@ -51,7 +52,7 @@ def load_data(control):
             f"{vuelo['distancia_millas']} mi"
         ])
     
-    headers_primeros = ["Fecha", "Salida", "Llegada", "Aerolínea", "Aeronave", "Ruta", "Duración", "Distancia"]
+    headers_primeros = ["Fecha", "Salida programada","Salida", "Llegada", "Aerolínea", "Aeronave", "Ruta", "Duración", "Distancia"]
     print(tabulate(tabla_primeros, headers=headers_primeros, tablefmt="fancy_grid", stralign="center"))
 
     print("\n" + "-"*100)
@@ -62,6 +63,7 @@ def load_data(control):
     for vuelo in ultimos:
         tabla_ultimos.append([
             vuelo['fecha'],
+            vuelo["hora_salida_programada"],
             vuelo['hora_salida'],
             vuelo['hora_llegada'],
             f"{vuelo['codigo_aerolinea']}\n{vuelo['nombre_aerolinea']}",
@@ -71,7 +73,7 @@ def load_data(control):
             f"{vuelo['distancia_millas']} mi"
         ])
     
-    headers_ultimos = ["Fecha", "Salida", "Llegada", "Aerolínea", "Aeronave", "Ruta", "Duración", "Distancia"]
+    headers_ultimos = ["Fecha","Salida programada", "Salida", "Llegada", "Aerolínea", "Aeronave", "Ruta", "Duración", "Distancia"]
     print(tabulate(tabla_ultimos, headers=headers_ultimos, tablefmt="fancy_grid", stralign="center"))
     
     print("\n" + "="*100)
@@ -140,6 +142,7 @@ def print_req_1(control):
                 vuelo['id_vuelo'],
                 vuelo['codigo_vuelo'],
                 vuelo['fecha'],
+                vuelo["Hora_salida"],
                 vuelo['codigo_aerolinea'],
                 vuelo['nombre_aerolinea'],
                 vuelo['aeropuerto_origen'],
@@ -147,7 +150,7 @@ def print_req_1(control):
                 f"{vuelo['retraso_min']:+.2f}" 
             ])
         
-        headers = ["ID", "Código\nVuelo", "Fecha", "Cód.\nAerolínea", "Nombre Aerolínea", 
+        headers = ["ID", "Código\nVuelo", "Fecha","Salida", "Cód.\nAerolínea", "Nombre Aerolínea", 
                    "Origen", "Destino", "Retraso\n(min)"]
         print(tabulate(tabla_primeros, headers=headers, tablefmt="grid"))
     
@@ -164,6 +167,7 @@ def print_req_1(control):
                 vuelo['id_vuelo'],
                 vuelo['codigo_vuelo'],
                 vuelo['fecha'],
+                vuelo["Hora_salida"],
                 vuelo['codigo_aerolinea'],
                 vuelo['nombre_aerolinea'],
                 vuelo['aeropuerto_origen'],

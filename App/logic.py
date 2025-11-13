@@ -82,6 +82,7 @@ def load_data(catalog, filename):
         vuelo = al.get_element(vuelos_ordenados, i)
         info = {
             "fecha": vuelo["date"].strftime(fmt_fecha),
+            "hora_salida_programada": vuelo["sched_dep_time"].strftime(fmt_hora),
             "hora_salida": vuelo["dep_time"].strftime(fmt_hora),
             "hora_llegada": vuelo["arr_time"].strftime(fmt_hora),
             "codigo_aerolinea": vuelo["carrier"],
@@ -99,6 +100,7 @@ def load_data(catalog, filename):
         vuelo = al.get_element(vuelos_ordenados, i)
         info = {
             "fecha": vuelo["date"].strftime(fmt_fecha),
+            "hora_salida_programada": vuelo["sched_dep_time"].strftime(fmt_hora),
             "hora_salida": vuelo["dep_time"].strftime(fmt_hora),
             "hora_llegada": vuelo["arr_time"].strftime(fmt_hora),
             "codigo_aerolinea": vuelo["carrier"],
@@ -179,6 +181,7 @@ def req_1(catalog, code, min_delay, max_delay):
             "id_vuelo": elem["id"],
             "codigo_vuelo": elem["flight"],
             "fecha": elem["date"].strftime("%Y-%m-%d"),
+            "Hora_salida": elem["dep_time"].strftime("%H:%M"),
             "nombre_aerolinea": elem["name"],
             "codigo_aerolinea": elem["carrier"],
             "aeropuerto_origen": elem["origin"],
@@ -194,6 +197,7 @@ def req_1(catalog, code, min_delay, max_delay):
                 "id_vuelo": elem["id"],
                 "codigo_vuelo": elem["flight"],
                 "fecha": elem["date"].strftime("%Y-%m-%d"),
+                "Hora_salida": elem["dep_time"].strftime("%H:%M"),
                 "nombre_aerolinea": elem["name"],
                 "codigo_aerolinea": elem["carrier"],
                 "aeropuerto_origen": elem["origin"],
