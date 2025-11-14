@@ -233,6 +233,7 @@ def print_req_2(control):
                 vuelo['id'],
                 vuelo['flight'],
                 vuelo['date'],
+                vuelo["hora_llegada_real"],
                 vuelo['airline_code'],
                 vuelo['airline_name'],
                 vuelo['origin'],
@@ -240,7 +241,7 @@ def print_req_2(control):
                 f"{vuelo['anticipation_min']:.2f}"
             ])
         
-        headers = ["ID", "Código\nVuelo", "Fecha", "Cód.\nAerolínea", "Nombre Aerolínea", 
+        headers = ["ID", "Código\nVuelo", "Fecha","Llegada", "Cód.\nAerolínea", "Nombre Aerolínea", 
                    "Origen", "Destino", "Anticipo\n(min)"]
         print(tabulate(tabla_primeros, headers=headers, tablefmt="grid"))
 
@@ -256,6 +257,7 @@ def print_req_2(control):
                 vuelo['id'],
                 vuelo['flight'],
                 vuelo['date'],
+                vuelo["hora_llegada_real"],
                 vuelo['airline_code'],
                 vuelo['airline_name'],
                 vuelo['origin'],
